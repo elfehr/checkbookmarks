@@ -29,6 +29,8 @@ useragent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_3) AppleWebKit/537.36 (
 
 report_success = False
 report_redirects = False
+print_failures = False
+print_stats = True
 timeout = 10
 database = "places.sqlite"
 njobs = 10
@@ -78,12 +80,20 @@ def run(nprocs, nresults):
     nfailure = failure.qsize()
     total = nsuccess + nfailure
 
-    print("Checked {} urls: {} healty, {} dead (%{} linkrot)".format(
-        total, nsuccess, nfailure, nfailure / total * 100))
+    if print_stats:
+        print("Checked {} urls: {} healty, {} dead (%{} linkrot)".format(
+            total, nsuccess, nfailure, nfailure / total * 100))
+
+    if print_failures:
+        while True:
+            if failure.empty():
+                break
+            fail = failure.get()
+            print(fail[0])
 
 def cli(args):
-    global report_success, report_redirects, timeout, database
-    global njobs, nresults
+    global report_success, report_redirects, print_failures, print_stats
+    global njobs, nresults, timeout, database
 
     p = argparse.ArgumentParser(
         description="Check the health of Firefox bookmarks.")
@@ -100,6 +110,7 @@ def cli(args):
     p.add_argument("-r", metavar="RESULTS", type=int,
         help="check at most this much urls, by default all of them are"
              " processed")
+    p.add_argument("-p", action="count", help="print failed urls, without the stats if doubled")
     p.add_argument("-v", action="count", help="be verbose")
 
     args = p.parse_args(args)
@@ -110,6 +121,9 @@ def cli(args):
     if args.t: timeout = args.t
     if args.j: njobs = args.j
     if args.r: nresults = args.r
+    if args.p:
+        if args.p >= 1: print_failures = True
+        if args.p >= 2: print_stats = False
     database = args.db
 
 if __name__ == "__main__":
